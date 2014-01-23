@@ -27,7 +27,9 @@ print "....................................................."
 print "FRIENDSHIPS OF A TWITTER USER"
 print ""	
 
-username = "openp2pdesign"
+username = "rasmusvuori"
+
+errors = 0
 
 # Get them from http://dev.twitter.com
 OAUTH_TOKEN = "Insert here"
@@ -78,10 +80,6 @@ print ""
 print "Adding following relationships..."
 for id in friends:
 	graph.add_edge(username,friends[id])
-	
-errors = 0
-
-print "Here is the problem"
 
 ## here new part
 
@@ -97,40 +95,21 @@ for i in followers:
 	followers_total[followers[i]] = {}
 
 	while cursor != "0":
-		followers_query = twitter.followers.list(screen_name=followers[i],count=200,cursor=cursor)
-		cursor = followers_query["next_cursor_str"]
-		for id in followers_query["users"]:
-			followers_total[followers[i]][id["id"]] = id["screen_name"]
-			print " - ",id["screen_name"],"id =",id["id"]
+		try:
+			followers_query = twitter.followers.list(screen_name=followers[i],count=200,cursor=cursor)
+			cursor = followers_query["next_cursor_str"]
+			for id in followers_query["users"]:
+				followers_total[followers[i]][id["id"]] = id["screen_name"]
+				print " - ",id["screen_name"],"id =",id["id"]
+		except Exception,e:
+			print "Error:",e
+			print "There were some errors with user",followers[i],"; most likely it is a protected user"
+			cursor = "0"
 
 print "test"
 exit()
 ## here new part
 
-# Check 1.5 connections
-print ""
-print "Checking connections at 1.5 degree..."
-for id1 in followers:
-	for id2 in friends:
-		try:
-			check = twitter.friendships.show(source_screen_name=followers[id1],target_screen_name=friends[id2])
-			print "Checking",followers[id1],"+",friends[id2]
-			if check["relationship"]["source"]["following"]:
-				graph.add_edge(followers[id1],friends[id2])
-			if check["relationship"]["source"]["followed_by"]:
-				graph.add_edge(friends[id2],followers[id1])
-		except:
-			errors +=1
-#for id2 in friends:
-#	for id1 in followers:
-#		try:
-#			check = twitter.friendships.show(source_screen_name=friends[id2],target_screen_name=followers[id1])
-#			if check["relationship"]["source"]["following"] and graph.has_edge(friends[id2],followers[id1]) == False:
-#				graph.add_edge(friends[id2],followers[id1])
-#			if check["relationship"]["source"]["followed_by"] and graph.has_edge(followers[id1],friends[id2]) == False:
-#				graph.add_edge(followers[id1],friends[id2])
-#		except:
-#			errors +=1
 	
 # Save graph
 print ""
