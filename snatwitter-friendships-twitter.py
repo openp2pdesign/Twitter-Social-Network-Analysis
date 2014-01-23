@@ -81,6 +81,32 @@ for id in friends:
 	
 errors = 0
 
+print "Here is the problem"
+
+## here new part
+
+followers_total = {}
+
+# Load first degree of followers and friends for each user
+for i in followers:
+	print ""
+	print "Loading users who follow",followers[i],"..."
+	followers_query = {}
+	counting = 0
+	cursor = -1
+	followers_total[followers[i]] = {}
+
+	while cursor != "0":
+		followers_query = twitter.followers.list(screen_name=followers[i],count=200,cursor=cursor)
+		cursor = followers_query["next_cursor_str"]
+		for id in followers_query["users"]:
+			followers_total[followers[i]][id["id"]] = id["screen_name"]
+			print " - ",id["screen_name"],"id =",id["id"]
+
+print "test"
+exit()
+## here new part
+
 # Check 1.5 connections
 print ""
 print "Checking connections at 1.5 degree..."
