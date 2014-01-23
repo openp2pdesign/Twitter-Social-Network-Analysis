@@ -15,6 +15,7 @@
 
 from twitter import *
 import networkx as nx
+from time import sleep
 import os
 
 # Clear screen
@@ -31,11 +32,16 @@ username = "rasmusvuori"
 
 errors = 0
 
+def load_followers():
+	return
+
 # Get them from http://dev.twitter.com
 OAUTH_TOKEN = "Insert here"
 OAUTH_SECRET = "Insert here"
 CONSUMER_KEY = "Insert here"
 CONSUMER_SECRET = "Insert here"
+
+
 
 # Log in
 auth = OAuth(OAUTH_TOKEN, OAUTH_SECRET, CONSUMER_KEY, CONSUMER_SECRET)
@@ -102,11 +108,30 @@ for i in followers:
 				followers_total[followers[i]][id["id"]] = id["screen_name"]
 				print " - ",id["screen_name"],"id =",id["id"]
 		except Exception,e:
-			print "Error:",e
-			print "There were some errors with user",followers[i],"; most likely it is a protected user"
-			cursor = "0"
+			if "Rate limit exceeded" in str(e):
+				print "Rate exceeded... waiting 15 minutes before retrying"
+				
+				# Countdown from http://stackoverflow.com/questions/17220128/display-a-countdown-for-the-python-sleep-function
+				import sys
+				for i in xrange(60*15,0,-1):
+					time.sleep(1)
+					sys.stdout.write(str(i)+' ')
+					sys.stdout.flush()
+					
+				followers_query = twitter.followers.list(screen_name=followers[i],count=200,cursor=cursor)
+				cursor = followers_query["next_cursor_str"]
+				for id in followers_query["users"]:
+					followers_total[followers[i]][id["id"]] = id["screen_name"]
+					print " - ",id["screen_name"],"id =",id["id"]
+			elif "Not authorized" in str(e):				
+				print "There were some errors with user",followers[i],"; most likely it is a protected user"
+				cursor = "0"
+			else:
+				print "Some error happened with user",followers[i]
+				cursor = "0"
 
 print "test"
+print followers_total
 exit()
 ## here new part
 
