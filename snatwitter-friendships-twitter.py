@@ -16,6 +16,7 @@
 from twitter import *
 import networkx as nx
 from time import sleep
+import sys
 import os
 
 # Clear screen
@@ -111,12 +112,13 @@ for i in followers:
 			if "Rate limit exceeded" in str(e):
 				print "Rate exceeded... waiting 15 minutes before retrying"
 				
-				# Countdown from http://stackoverflow.com/questions/17220128/display-a-countdown-for-the-python-sleep-function
-				import sys
-				for i in xrange(60*15,0,-1):
-					time.sleep(1)
-					sys.stdout.write(str(i)+' ')
+				# Countdown http://stackoverflow.com/questions/3249524/print-in-one-line-dynamically-python
+				for k in range(1,60*15):
+					remaining = 60*15 - k
+					sys.stdout.write("\r%d seconds remaining   " % remaining)
 					sys.stdout.flush()
+					sleep(1)
+				sys.stdout.write("\n")
 					
 				followers_query = twitter.followers.list(screen_name=followers[i],count=200,cursor=cursor)
 				cursor = followers_query["next_cursor_str"]
@@ -124,7 +126,7 @@ for i in followers:
 					followers_total[followers[i]][id["id"]] = id["screen_name"]
 					print " - ",id["screen_name"],"id =",id["id"]
 			elif "Not authorized" in str(e):				
-				print "There were some errors with user",followers[i],"; most likely it is a protected user"
+				print "There were some errors with user",followers[i],"... most likely it is a protected user"
 				cursor = "0"
 			else:
 				print "Some error happened with user",followers[i]
