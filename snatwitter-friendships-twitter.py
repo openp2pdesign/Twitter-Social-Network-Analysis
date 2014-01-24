@@ -23,7 +23,7 @@ import os
 os.system('cls' if os.name=='nt' else 'clear')
 
 graph=nx.DiGraph()
-username = "rasmusvuori"
+username = "openmetadesign"
 errors = 0
 
 print ""
@@ -89,7 +89,6 @@ CONSUMER_KEY = "Insert here"
 CONSUMER_SECRET = "Insert here"
 
 
-
 # Log in
 auth = OAuth(OAUTH_TOKEN, OAUTH_SECRET, CONSUMER_KEY, CONSUMER_SECRET)
 twitter = Twitter(auth = auth)
@@ -100,24 +99,22 @@ starting_user = {query[0]["id"]: username}
 first_followers = load_connections(starting_user, "followers")
 first_friends = load_connections(starting_user, "friends")
 
-exit()
-
-
-
-
-
-
+# Load second degree of followers and friends
+second_followers_followers = load_connections(first_followers, "followers")
+second_friends_friends = load_connections(first_followers, "friends")
+second_followers_followers = load_connections(first_friends, "followers")
+second_friends_friends = load_connections(first_friends, "friends")
 
 # Create graph
 print ""
 print "Adding followers relationships..."
 for id in first_followers:
-	graph.add_edge(followers[id],username)
+	graph.add_edge(first_followers[id],username)
 
 print ""
 print "Adding following relationships..."
 for id in first_friends:
-	graph.add_edge(username,friends[id])
+	graph.add_edge(username,first_friends[id])
 	
 # Save graph
 print ""
