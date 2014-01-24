@@ -23,18 +23,64 @@ import os
 os.system('cls' if os.name=='nt' else 'clear')
 
 graph=nx.DiGraph()
+username = "rasmusvuori"
+errors = 0
 
 print ""
 print "....................................................."
-print "FRIENDSHIPS OF A TWITTER USER"
+print "FRIENDSHIPS OF A TWITTER USER:",username
 print ""	
 
-username = "rasmusvuori"
+def load_connections(user_list,option):
+	connections = {}
+	for i in user_list:
+		print ""
+		if option == "followers":
+			print "Loading users who follow",user_list[i],"..."
+		else:
+			print "Loading users who",user_list[i],"follows..."
+		query = {}
+		counting = 0
+		cursor = -1
+		connections[user_list[i]] = {}
 
-errors = 0
-
-def load_followers():
-	return
+		while cursor != "0":
+			try:
+				if option == "followers":
+					query = twitter.followers.list(screen_name=user_list[i],count=200,cursor=cursor)
+				else:
+					query = twitter.friends.list(screen_name=user_list[i],count=200,cursor=cursor)
+				cursor = query["next_cursor_str"]
+				for id in query["users"]:
+					connections[user_list[i]][id["id"]] = id["screen_name"]
+					print " - ",id["screen_name"],"id =",id["id"]
+			except Exception,e:
+				if "Rate limit exceeded" in str(e):
+					print "Rate exceeded... waiting 15 minutes before retrying"
+				
+					# Countdown http://stackoverflow.com/questions/3249524/print-in-one-line-dynamically-python
+					for k in range(1,60*15):
+						remaining = 60*15 - k
+						sys.stdout.write("\r%d seconds remaining   " % remaining)
+						sys.stdout.flush()
+						sleep(1)
+					sys.stdout.write("\n")
+					
+					if option == "followers":
+						query = twitter.followers.list(screen_name=user_list[i],count=200,cursor=cursor)
+					else:
+						query = twitter.friends.list(screen_name=user_list[i],count=200,cursor=cursor)
+					cursor = query["next_cursor_str"]
+					for id in query["users"]:
+						connections[user_list[i]][id["id"]] = id["screen_name"]
+						print " - ",id["screen_name"],"id =",id["id"]
+				elif "Not authorized" in str(e):				
+					print "There were some errors with user",user_list[i],"... most likely it is a protected user"
+					cursor = "0"
+				else:
+					print "Some error happened with user",user_list[i]
+					cursor = "0"
+	return connections
 
 # Get them from http://dev.twitter.com
 OAUTH_TOKEN = "Insert here"
@@ -49,94 +95,29 @@ auth = OAuth(OAUTH_TOKEN, OAUTH_SECRET, CONSUMER_KEY, CONSUMER_SECRET)
 twitter = Twitter(auth = auth)
 
 # Load first degree of followers and friends
-print ""
-print "Loading users who follow",username,"..."
-followers_query = {}
-counting = 0
-cursor = -1
-followers = {}
+query = twitter.users.lookup(screen_name=username)
+starting_user = {query[0]["id"]: username}
+first_followers = load_connections(starting_user, "followers")
+first_friends = load_connections(starting_user, "friends")
 
-while cursor != "0":
-	followers_query = twitter.followers.list(screen_name=username,count=200,cursor=cursor)
-	cursor = followers_query["next_cursor_str"]
-	for id in followers_query["users"]:
-		followers[id["id"]] = id["screen_name"]
-		print " - ",id["screen_name"],"id =",id["id"]
+exit()
 
-print ""
-print "Loading users that",username,"follows..."
-friends_query = {}
-counting = 0
-cursor = -1
-friends = {}
 
-while cursor != "0":
-	friends_query = twitter.friends.list(screen_name=username,count=200,cursor=cursor)
-	cursor = friends_query["next_cursor_str"]
-	for id in friends_query["users"]:
-		friends[id["id"]] = id["screen_name"]
-		print " - ",id["screen_name"],"id =",id["id"]
+
+
+
+
 
 # Create graph
 print ""
 print "Adding followers relationships..."
-for id in followers:
+for id in first_followers:
 	graph.add_edge(followers[id],username)
 
 print ""
 print "Adding following relationships..."
-for id in friends:
+for id in first_friends:
 	graph.add_edge(username,friends[id])
-
-## here new part
-
-followers_total = {}
-
-# Load first degree of followers and friends for each user
-for i in followers:
-	print ""
-	print "Loading users who follow",followers[i],"..."
-	followers_query = {}
-	counting = 0
-	cursor = -1
-	followers_total[followers[i]] = {}
-
-	while cursor != "0":
-		try:
-			followers_query = twitter.followers.list(screen_name=followers[i],count=200,cursor=cursor)
-			cursor = followers_query["next_cursor_str"]
-			for id in followers_query["users"]:
-				followers_total[followers[i]][id["id"]] = id["screen_name"]
-				print " - ",id["screen_name"],"id =",id["id"]
-		except Exception,e:
-			if "Rate limit exceeded" in str(e):
-				print "Rate exceeded... waiting 15 minutes before retrying"
-				
-				# Countdown http://stackoverflow.com/questions/3249524/print-in-one-line-dynamically-python
-				for k in range(1,60*15):
-					remaining = 60*15 - k
-					sys.stdout.write("\r%d seconds remaining   " % remaining)
-					sys.stdout.flush()
-					sleep(1)
-				sys.stdout.write("\n")
-					
-				followers_query = twitter.followers.list(screen_name=followers[i],count=200,cursor=cursor)
-				cursor = followers_query["next_cursor_str"]
-				for id in followers_query["users"]:
-					followers_total[followers[i]][id["id"]] = id["screen_name"]
-					print " - ",id["screen_name"],"id =",id["id"]
-			elif "Not authorized" in str(e):				
-				print "There were some errors with user",followers[i],"... most likely it is a protected user"
-				cursor = "0"
-			else:
-				print "Some error happened with user",followers[i]
-				cursor = "0"
-
-print "test"
-print followers_total
-exit()
-## here new part
-
 	
 # Save graph
 print ""
