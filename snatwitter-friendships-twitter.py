@@ -88,7 +88,6 @@ OAUTH_SECRET = "Insert here"
 CONSUMER_KEY = "Insert here"
 CONSUMER_SECRET = "Insert here"
 
-
 # Log in
 auth = OAuth(OAUTH_TOKEN, OAUTH_SECRET, CONSUMER_KEY, CONSUMER_SECRET)
 twitter = Twitter(auth = auth)
@@ -100,25 +99,51 @@ first_followers = load_connections(starting_user, "followers")
 first_friends = load_connections(starting_user, "friends")
 
 # Load second degree of followers and friends
-second_followers_followers = load_connections(first_followers, "followers")
-second_friends_friends = load_connections(first_followers, "friends")
-second_followers_followers = load_connections(first_friends, "followers")
-second_friends_friends = load_connections(first_friends, "friends")
+second_followers_followers = {}
+second_followers_friends = {}
+second_friends_followers = {}
+second_friends_friends = {}
+
+for id in first_followers:
+	second_followers_followers[id] = load_connections(first_followers[id], "followers")
+for id in first_followers:
+	second_followers_friends[id] = load_connections(first_followers[id], "friends")
+for id in first_friends:
+	second_friends_followers[id] = load_connections(first_friends[id], "followers")
+for id in first_friends:
+	second_friends_friends[id] = load_connections(first_friends[id], "friends")
 
 # Create graph
 print ""
-print "Adding followers relationships..."
-for id in first_followers:
-	graph.add_edge(first_followers[id],username)
+print "Followers: adding followers relationships..."
+for i in second_followers_followers[username]:
+	graph.add_edge(i,username)
+	for k in second_followers_followers[username][i]:
+		graph.add_edge(second_followers_followers[username][i][k],i)
 
 print ""
-print "Adding following relationships..."
-for id in first_friends:
-	graph.add_edge(username,first_friends[id])
+print "Followers: adding friends relationships..."
+for i in second_followers_friends[username]:
+	for k in second_followers_followers[username][i]:
+		graph.add_edge(i,second_followers_followers[username][i][k])
+
+print ""
+print "Friends: adding followers relationships..."
+for i in second_friends_followers[username]:
+	graph.add_edge(username,i)
+	for k in second_friends_followers[username][i]:
+		graph.add_edge(second_friends_followers[username][i][k],i)
+
+print ""
+print "Friends: adding friends relationships..."
+for i in second_friends_friends[username]:
+	for k in second_friends_friends[username][i]:
+		graph.add_edge(i,second_friends_friends[username][i][k])
+
 	
 # Save graph
 print ""
 print "The personal profile was analyzed succesfully.",errors,"errors were encountered."
 print ""
-print "Saving the file as "+username+"-personal-network.gexf..."
-nx.write_gexf(graph, username+"-personal-network.gexf")
+print "Saving the file as "+username+"-twitter-personal-network.gexf..."
+nx.write_gexf(graph, username+"-twitter-personal-network.gexf")
