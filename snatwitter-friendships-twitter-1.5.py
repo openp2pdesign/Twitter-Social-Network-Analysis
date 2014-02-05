@@ -31,55 +31,54 @@ print "....................................................."
 print "FRIENDSHIPS OF A TWITTER USER:",username
 print ""	
 
-def load_connections(user_list,option):
+def load_connections(user_id,option):
 	connections = {}
-	for i in user_list:
-		print ""
-		if option == "followers":
-			print "Loading users who follow",user_list[i],"..."
-		else:
-			print "Loading users who",user_list[i],"follows..."
-		query = {}
-		counting = 0
-		cursor = -1
-		connections[user_list[i]] = {}
+	print ""
+	if option == "followers":
+		print "Loading users who follow",user_list[i],"..."
+	else:
+		print "Loading users who",user_list[i],"follows..."
+	query = {}
+	counting = 0
+	cursor = -1
+	connections[user_id] = {}
 
-		while cursor != "0":
-			try:
+	while cursor != "0":
+		try:
+			if option == "followers":
+				query = twitter.followers.ids(screen_name=user_id,count=5000,cursor=cursor)
+			else:
+				query = twitter.friends.ids(screen_name=user_id,count=5000,cursor=cursor)
+			cursor = query["next_cursor_str"]
+			for id in query["ids"]:
+				connections[user_id][id["id"]] = id["screen_name"]
+				print " - ",id["screen_name"],"id =",id["id"]
+		except Exception,e:
+			if "Rate limit exceeded" in str(e):
+				print "Rate exceeded... waiting 15 minutes before retrying"
+			
+				# Countdown http://stackoverflow.com/questions/3249524/print-in-one-line-dynamically-python
+				for k in range(1,60*15):
+					remaining = 60*15 - k
+					sys.stdout.write("\r%d seconds remaining   " % remaining)
+					sys.stdout.flush()
+					sleep(1)
+				sys.stdout.write("\n")
+				
 				if option == "followers":
-					query = twitter.followers.list(screen_name=user_list[i],count=200,cursor=cursor)
+					query = twitter.followers.ids(screen_name=user_id,count=5000,cursor=cursor)
 				else:
-					query = twitter.friends.list(screen_name=user_list[i],count=200,cursor=cursor)
+					query = twitter.friends.ids(screen_name=user_id,count=5000,cursor=cursor)
 				cursor = query["next_cursor_str"]
 				for id in query["users"]:
 					connections[user_list[i]][id["id"]] = id["screen_name"]
 					print " - ",id["screen_name"],"id =",id["id"]
-			except Exception,e:
-				if "Rate limit exceeded" in str(e):
-					print "Rate exceeded... waiting 15 minutes before retrying"
-				
-					# Countdown http://stackoverflow.com/questions/3249524/print-in-one-line-dynamically-python
-					for k in range(1,60*15):
-						remaining = 60*15 - k
-						sys.stdout.write("\r%d seconds remaining   " % remaining)
-						sys.stdout.flush()
-						sleep(1)
-					sys.stdout.write("\n")
-					
-					if option == "followers":
-						query = twitter.followers.list(screen_name=user_list[i],count=200,cursor=cursor)
-					else:
-						query = twitter.friends.list(screen_name=user_list[i],count=200,cursor=cursor)
-					cursor = query["next_cursor_str"]
-					for id in query["users"]:
-						connections[user_list[i]][id["id"]] = id["screen_name"]
-						print " - ",id["screen_name"],"id =",id["id"]
-				elif "Not authorized" in str(e):				
-					print "There were some errors with user",user_list[i],"... most likely it is a protected user"
-					cursor = "0"
-				else:
-					print "Some error happened with user",user_list[i]
-					cursor = "0"
+			elif "Not authorized" in str(e):				
+				print "There were some errors with user",user_list[i],"... most likely it is a protected user"
+				cursor = "0"
+			else:
+				print "Some error happened with user",user_list[i]
+				cursor = "0"
 	return connections
 
 # Get them from http://dev.twitter.com
@@ -87,6 +86,7 @@ OAUTH_TOKEN = "Insert here"
 OAUTH_SECRET = "Insert here"
 CONSUMER_KEY = "Insert here"
 CONSUMER_SECRET = "Insert here"
+
 
 # Log in
 auth = OAuth(OAUTH_TOKEN, OAUTH_SECRET, CONSUMER_KEY, CONSUMER_SECRET)
@@ -104,7 +104,8 @@ for i in first_followers[username]:
 	for k in first_friends[username]:
 		connection = first_followers[username][i]+", "+first_friends[username][k]
 		try:		
-			query = twitter.users.lookup(screen_name=connection)
+			# API: https://dev.twitter.com/docs/api/1.1/get/friendships/show
+			query = twitter.friendships.show(source_screen_name=first_followers[username][i], target_screen_name=first_friends[username][k])
 		except Exception,e:
 			if "Rate limit exceeded" in str(e):
 				print "Rate exceeded... waiting 15 minutes before retrying"
@@ -115,13 +116,14 @@ for i in first_followers[username]:
 					sys.stdout.flush()
 					sleep(1)
 				sys.stdout.write("\n")	
-				query = twitter.users.lookup(screen_name=connection)
-			
-		if query[0]["following"]:
-			graph.add_edge(query[0]["screen_name"],query[1]["screen_name"])
-		if query[1]["following"]:
-			graph.add_edge(query[1]["screen_name"],query[0]["screen_name"])
-		
+				query = twitter.friendships.show(source_screen_name=first_followers[username][i], target_screen_name=first_friends[username][k])
+		if query['relationship']['source']['following']:
+			graph.add_edge(first_followers[username][i],first_friends[username][k])
+			print "-",first_followers[username][i],"follows",first_friends[username][k]
+		if query['relationship']['target']['following']:
+			graph.add_edge(first_friends[username][k],first_followers[username][i])
+			print "-",first_friends[username][k],"follows",first_followers[username][i]
+	
 
 # Save graph
 print ""
