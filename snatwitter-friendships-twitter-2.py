@@ -110,7 +110,7 @@ second_friends_friends = load_connections(first_friends[starting_user[0]], "frie
 
 # Add edges...
 print ""
-print "Checking 1.5 degree connections..."
+print "Checking 2 degree connections..."
 
 for f in first_followers:
 	for k in first_followers[f]:
@@ -179,5 +179,5 @@ graph_screen_names = nx.relabel_nodes(graph,mapping)
 print ""
 print "The personal profile was analyzed succesfully.",errors,"errors were encountered."
 print ""
-print "Saving the file as "+username+"-twitter-personal-network-1.5-degree.gexf..."
-nx.write_gexf(graph_screen_names, username+"-twitter-personal-network-1.5-degree.gexf")
+print "Saving the file as "+username+"-twitter-personal-network-2-degree.gexf..."
+nx.write_gexf(graph_screen_names, username+"-twitter-personal-network-2-degree.gexf")
