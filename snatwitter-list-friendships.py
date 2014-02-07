@@ -91,7 +91,6 @@ OAUTH_SECRET = "Insert here"
 CONSUMER_KEY = "Insert here"
 CONSUMER_SECRET = "Insert here"
 
-
 # Log in
 auth = OAuth(OAUTH_TOKEN, OAUTH_SECRET, CONSUMER_KEY, CONSUMER_SECRET)
 twitter = Twitter(auth = auth)
@@ -136,29 +135,29 @@ while cursor != 0:
 		members[i["id"]] = i["screen_name"]
 
 for i in members:
-	print i, members[i]
+	# Load connections of each member
+	print ""
+	print "------------------------------------------------------------"
+	print ""
+	print "USER:",members[i]
+	print ""
+	print "Loading followers..."
+	followers = load_connections([i], "followers")
+	print ""
+	print "Loading friends..."
+	friends = load_connections([i], "friends")
 
-exit()
+	# Add edges...
+	print ""
+	print "Building the graph..."
 
-# Load connections of each member
-print ""
-print "Loading followers..."
-first_followers = load_connections(starting_user, "followers")
-print ""
-print "Loading friends..."
-first_friends = load_connections(starting_user, "friends")
-
-# Add edges...
-print ""
-print "Checking 1.5 degree connections..."
-
-for f in first_followers:
-	for k in first_followers[f]:
-		graph.add_edge(k,f)
+	for f in followers:
+		for k in followers[f]:
+			graph.add_edge(k,f)
 		
-for f in first_friends:
-	for k in first_friends[f]:
-		graph.add_edge(f,k)
+	for f in friends:
+		for k in friends[f]:
+			graph.add_edge(f,k)
 
 # Prepare 100 ids lists for converting id to screen names
 mapping = {}
@@ -175,6 +174,8 @@ for k in graph.nodes():
 	position += 1
 
 # Convert id to screen names
+print ""
+print "Converting ids to screen names..."
 for k in lista:
 	try:
 		# API: https://dev.twitter.com/docs/api/1.1/get/users/lookup
@@ -203,5 +204,5 @@ graph_screen_names = nx.relabel_nodes(graph,mapping)
 print ""
 print "The personal profile was analyzed succesfully.",errors,"errors were encountered.",len(graph_screen_names),"nodes in the network."
 print ""
-print "Saving the file as "+username+"-twitter-personal-network-1.5-degree.gexf..."
-nx.write_gexf(graph_screen_names, username+"-twitter-personal-network-1.5-degree.gexf")
+print "Saving the file as "+choice+"-twitter-list-network-1-degree.gexf..."
+nx.write_gexf(graph_screen_names, choice+"-twitter-list-network-1-degree.gexf")
